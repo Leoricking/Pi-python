@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import stat
 import struct
 import math
 import copy
@@ -201,10 +202,12 @@ def initial_parameter():
     #f_setup_ini = open(path+"setup.ini", mode='r')
     #f_SN_ini = open(path+"config_Decrypt.ini", mode='r')
     f_setup_ini = open(os.path.join(os.path.dirname(__file__), "setup.ini"), 'r')
+    f_lamp_ini = open(os.path.join(os.path.dirname(__file__), "lamp.ini"), 'r')
     f_SN_ini = open(os.path.join(os.path.dirname(__file__), "config_Decrypt.ini"), 'r')
     #從第35位置開始讀取
     f_SN_ini.seek(35,0)
     setup_lines = f_setup_ini.readlines()
+    lamp_lines = f_lamp_ini.readlines()
     SN_lines = f_SN_ini.readlines()
 
     global MeasureType
@@ -299,15 +302,27 @@ def initial_parameter():
                         Do_calibration = False    
                 elif "shift_Gain" in line:
                     shift_Gain = float(line[startIndex:endIndex])
-                elif "Lamp_reset" in line:
-                    Lamp_reset = int(line[startIndex:endIndex])
-                elif "Lamp_total_time" in line:
-                    if Lamp_reset == 0:
-                        Lamp_total_time = 0
-                    else :    
-                        Lamp_total_time = int(line[startIndex:endIndex])
+                # elif "Lamp_reset" in line:
+                #     Lamp_reset = int(line[startIndex:endIndex])
+                # elif "Lamp_total_time" in line:
+                #     if Lamp_reset == 0:
+                #         Lamp_total_time = 0
+                #     else :    
+                #         Lamp_total_time = int(line[startIndex:endIndex])
                 elif "Decimal_number" in line:
                     Decimal_number = int(line[startIndex:endIndex])
+    for line in lamp_lines:       #Lamp
+            if "#" not in line and "=" in line:
+                startIndex = line.index("=") + 1
+                endIndex = len(line)
+                if "Lamp_reset" in line:
+                        Lamp_reset = int(line[startIndex:endIndex])
+                elif "Lamp_total_time" in line:
+                    if Lamp_reset == 0:
+                        Lamp_total_time = int(line[startIndex:endIndex])
+                    else :    #reset
+                        Lamp_total_time = 0
+                    print(Lamp_total_time)    
     for line in SN_lines:       #SN
             if "#" not in line and "=" in line:
                 startIndex = line.index("=") + 1
@@ -382,8 +397,8 @@ class MainWindow(tk.Frame):
     def __init__(self,master):    
         tk.Frame.__init__(self, master)
         self.master = master
-        self.FileName = "setup.ini"
-        print(self.FileName)
+        self.FileName = "lamp.ini"
+        #print(self.FileName)
         self.master.title(" ")
         self.Lambda = tix.StringVar()
         self.Intensity = tix.StringVar()
@@ -646,9 +661,9 @@ class MainWindow(tk.Frame):
                 
                 self.Display_Lamp_time(Lamp_total_time + self.diff_time)
                 if Lamp_total_time + self.diff_time > 0:
-                    Lamp_reset = 1
+                    Lamp_reset = 0
                 else :
-                    Lamp_reset = 0    
+                    Lamp_reset = 1    
                 self.save()
                 #time.sleep(0.05)
             
@@ -888,78 +903,108 @@ class MainWindow(tk.Frame):
         #T = time.strftime("%H%M%S") 
         #D = time.strftime("_%Y%d%m")
         #f = open(self.FileName,'w')
-        f = open(os.path.join(os.path.dirname(__file__), self.FileName), 'w')
-        f.write('########################################\n')
-        f.write('##########       setup        ##########\n')
-        f.write('########################################\n')
-        f.write('\n')
-        f.write('#0:Spectrum,1:Absorbance,2:Transmittance,3:Reflection\n')
-        f.write('Measurement=' + str(MeasureType))
-        f.write('\n')
+        #os.chmod(os.path.join(os.path.dirname(__file__), self.FileName), stat.S_IRWXG)
+        #f = os.open(os.path.join(os.path.dirname(__file__), self.FileName), os.O_FSYNC, 'w')
+        #f = os.open(os.path.join(os.path.dirname(__file__), self.FileName),os.O_RDWR, 'w')
+        #f = os.open( os.path.join(os.path.dirname(__file__), self.FileName), os.O_RDWR|os.O_CREAT )
+        #f = open( os.path.join(os.path.dirname(__file__), self.FileName), os.O_RDWR|os.O_CREAT , 'w')
+        with open(os.path.join(os.path.dirname(__file__), self.FileName), 'w') as f:  
+            f.write('########################################\n')
+            f.write('##########       setup        ##########\n')
+            f.write('########################################\n')
+            f.write('\n')
+            f.write('#Lamp reset,0:Don\'t reset,1:Do reset\n')
+            f.write('Lamp_reset=' + str(Lamp_reset))
+            # if Lamp_total_time + self.diff_time > 0:
+            #     f.write('Lamp_reset=' + str(0))
+            # else:
+            #     f.write('Lamp_reset=' + str(1))
+            f.write('\n')
+            f.write('Lamp_total_time=' + str(Lamp_total_time + self.diff_time))
+            f.write('\n')
+            f.close()
+        #f = open(self.FileName,'w')
+        #os.fchmod(f, 0o755)
+        # os.fchmod(f, stat.S_IWOTH)
+        # #process = subprocess.Popen(cat_wifi_pws, stdout=subprocess.PIPE, shell=True)
+        # os.write(f, '########################################\n')
+        # os.write(f, '##########       setup        ##########\n')
+        # os.write(f, '########################################\n')
+        # os.write(f, '\n')
+        # f.write('########################################\n')
+        # f.write('##########       setup        ##########\n')
+        # f.write('########################################\n')
+        # f.write('\n')
+        # f.write('#0:Spectrum,1:Absorbance,2:Transmittance,3:Reflection\n')
+        # f.write('Measurement=' + str(MeasureType))
+        # f.write('\n')
         # f.write('#Serial Number\n')
         # f.write('SN=' + str(SerialNumber) + '\n')
-        f.write('\n')
-        f.write('#0:no USB\n')
-        f.write('Usb_path=' + str(Usb_path))
-        f.write('\n')
+        # f.write('\n')
+        # f.write('#0:no USB\n')
+        # f.write('Usb_path=' + str(Usb_path))
+        # f.write('\n')
         # f.write('#Password\n')
         # f.write('passwd=' + str(passwd) + '\n')
         # f.write('\n')
-        f.write('#k value\n')
-        f.write('k=' + str(k))
-        f.write('\n')
-        f.write('#ms\n')
-        f.write('IntegrationTime=' + str(IntegrationTime))
-        f.write('\n')
-        f.write('#Avg\n')
-        f.write('Average=' + str(Average))
-        f.write('\n')
-        f.write('#Serial mode,0:RS232,1:RS485\n')
-        f.write('Serial_mode=' + str(Serial_mode))
-        f.write('\n')
+        # f.write('#k value\n')
+        # f.write('k=' + str(k))
+        # f.write('\n')
+        # f.write('#ms\n')
+        # f.write('IntegrationTime=' + str(IntegrationTime))
+        # f.write('\n')
+        # f.write('#Avg\n')
+        # f.write('Average=' + str(Average))
+        # f.write('\n')
+        # f.write('#Serial mode,0:RS232,1:RS485\n')
+        # f.write('Serial_mode=' + str(Serial_mode))
+        # f.write('\n')
         #f.write('#螢幕顯示名稱\n')
         #print(read_Display_name)
         # f.write('Display_name=' + str(read_Display_name))
-        f.write('\n')
-        f.write('#select 5 lambda\n')
-        f.write('Lambda_1=' + str(lambda_1))
-        f.write('\n')
-        f.write('Lambda_1_display=' + str(lambda_1_display))
-        f.write('\n')
-        f.write('Lambda_2=' + str(lambda_2))
-        f.write('\n')
-        f.write('Lambda_3=' + str(lambda_3))
-        f.write('\n')
-        f.write('Lambda_4=' + str(lambda_4))
-        f.write('\n')
-        f.write('Lambda_5=' + str(lambda_5))
-        f.write('\n')
-        f.write('#unit\n')
-        f.write('Spectrum_unit=' + str(Spectrum_unit))
-        f.write('\n')
-        f.write('Absorbance_unit=' + str(Absorbance_unit))
-        f.write('\n')
-        f.write('Transmittance_unit=' + str(Transmittance_unit))
-        f.write('\n')
-        f.write('Reflection_unit=' + str(Reflection_unit))
-        f.write('\n')
-        f.write('ppm_unit=' + str(ppm_unit))
-        f.write('\n')
-        f.write('#Do calibration(Don\'t change it)\n')
-        f.write('Do_calibration=' + str(Do_calibration))
-        f.write('\n')
-        f.write('shift_Gain=' + str('{:.10f}'.format(shift_Gain)))
-        f.write('\n')
-        f.write('#Lamp reset,0:Don\'t reset,1:Do reset\n')
-        f.write('Lamp_reset=' + str(Lamp_reset))
-        f.write('\n')
-        f.write('Lamp_total_time=' + str(Lamp_total_time + self.diff_time))
-        f.write('\n')
-        f.write('#  2 <= Decimal <= 4\n')
-        f.write('Decimal_number=' + str(Decimal_number))
+        # f.write('\n')
+        # f.write('#select 5 lambda\n')
+        # f.write('Lambda_1=' + str(lambda_1))
+        # f.write('\n')
+        # f.write('Lambda_1_display=' + str(lambda_1_display))
+        # f.write('\n')
+        # f.write('Lambda_2=' + str(lambda_2))
+        # f.write('\n')
+        # f.write('Lambda_3=' + str(lambda_3))
+        # f.write('\n')
+        # f.write('Lambda_4=' + str(lambda_4))
+        # f.write('\n')
+        # f.write('Lambda_5=' + str(lambda_5))
+        # f.write('\n')
+        # f.write('#unit\n')
+        # f.write('Spectrum_unit=' + str(Spectrum_unit))
+        # f.write('\n')
+        # f.write('Absorbance_unit=' + str(Absorbance_unit))
+        # f.write('\n')
+        # f.write('Transmittance_unit=' + str(Transmittance_unit))
+        # f.write('\n')
+        # f.write('Reflection_unit=' + str(Reflection_unit))
+        # f.write('\n')
+        # f.write('ppm_unit=' + str(ppm_unit))
+        # f.write('\n')
+        # f.write('#Do calibration(Don\'t change it)\n')
+        # f.write('Do_calibration=' + str(Do_calibration))
+        # f.write('\n')
+        # f.write('shift_Gain=' + str('{:.10f}'.format(shift_Gain)))
+        # f.write('\n')
+        
+        # os.write(f, '#Lamp reset,0:Don\'t reset,1:Do reset\n')
+        # os.write(f, 'Lamp_reset=' + str(Lamp_reset))
+        # os.write(f, '\n')
+        # os.write(f, 'Lamp_total_time=' + str(Lamp_total_time + self.diff_time))
+        # os.write(f, '\n')
+        # f.write('#  2 <= Decimal <= 4\n')
+        # f.write('Decimal_number=' + str(Decimal_number))
         # for i in I:
         #     f.write(str('%.3f'%SD_lambda_Raw[i])+'\t'+str('%.8f'%self.buffer[i]) + '\n')
-        f.close()
+        #f.close()
+        os.chmod(os.path.join(os.path.dirname(__file__), self.FileName), 0o777)
+        #os.close(f)
         #self.save_setup_ini()
 
     def run(self):
