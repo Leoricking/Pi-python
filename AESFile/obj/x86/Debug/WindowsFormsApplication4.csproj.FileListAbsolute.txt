@@ -1,0 +1,16 @@
+c:\users\rossi.huang\documents\visual studio 2010\Projects\WindowsFormsApplication4\WindowsFormsApplication4\bin\Debug\WindowsFormsApplication4.exe
+c:\users\rossi.huang\documents\visual studio 2010\Projects\WindowsFormsApplication4\WindowsFormsApplication4\bin\Debug\WindowsFormsApplication4.pdb
+c:\users\rossi.huang\documents\visual studio 2010\Projects\WindowsFormsApplication4\WindowsFormsApplication4\obj\x86\Debug\WindowsFormsApplication4.Form1.resources
+c:\users\rossi.huang\documents\visual studio 2010\Projects\WindowsFormsApplication4\WindowsFormsApplication4\obj\x86\Debug\WindowsFormsApplication4.Properties.Resources.resources
+c:\users\rossi.huang\documents\visual studio 2010\Projects\WindowsFormsApplication4\WindowsFormsApplication4\obj\x86\Debug\WindowsFormsApplication4.csproj.GenerateResource.Cache
+c:\users\rossi.huang\documents\visual studio 2010\Projects\WindowsFormsApplication4\WindowsFormsApplication4\obj\x86\Debug\WindowsFormsApplication4.exe
+c:\users\rossi.huang\documents\visual studio 2010\Projects\WindowsFormsApplication4\WindowsFormsApplication4\obj\x86\Debug\WindowsFormsApplication4.pdb
+c:\users\rossi.huang\documents\visual studio 2010\Projects\WindowsFormsApplication4\WindowsFormsApplication4\obj\x86\Debug\WindowsFormsApplication4.Form2.resources
+F:\超微光學OTO\C#\練習\test\WindowsFormsApplication4\obj\x86\Debug\WindowsFormsApplication4.exe
+F:\超微光學OTO\C#\練習\test\WindowsFormsApplication4\obj\x86\Debug\WindowsFormsApplication4.pdb
+F:\超微光學OTO\C#\練習\test\WindowsFormsApplication4\bin\Debug\WindowsFormsApplication4.exe
+F:\超微光學OTO\C#\練習\test\WindowsFormsApplication4\bin\Debug\WindowsFormsApplication4.pdb
+F:\超微光學OTO\C#\練習\test\WindowsFormsApplication4\obj\x86\Debug\WindowsFormsApplication4.Form1.resources
+F:\超微光學OTO\C#\練習\test\WindowsFormsApplication4\obj\x86\Debug\WindowsFormsApplication4.Form2.resources
+F:\超微光學OTO\C#\練習\test\WindowsFormsApplication4\obj\x86\Debug\WindowsFormsApplication4.Properties.Resources.resources
+F:\超微光學OTO\C#\練習\test\WindowsFormsApplication4\obj\x86\Debug\WindowsFormsApplication4.csproj.GenerateResource.Cache

@@ -1,0 +1,17 @@
+G:\宗豪\AES File\WindowsFormsApplication4\bin\Debug\AESFile.exe
+G:\宗豪\AES File\WindowsFormsApplication4\bin\Debug\AESFile.pdb
+G:\宗豪\AES File\WindowsFormsApplication4\obj\x86\Debug\AESFile.Main.resources
+G:\宗豪\AES File\WindowsFormsApplication4\obj\x86\Debug\AESFile.Properties.Resources.resources
+G:\宗豪\AES File\WindowsFormsApplication4\obj\x86\Debug\AESFile.csproj.GenerateResource.cache
+G:\宗豪\AES File\WindowsFormsApplication4\obj\x86\Debug\AESFile.csproj.CoreCompileInputs.cache
+G:\宗豪\AES File\WindowsFormsApplication4\obj\x86\Debug\AESFile.exe
+G:\宗豪\AES File\WindowsFormsApplication4\obj\x86\Debug\AESFile.pdb
+D:\凱力特\AES File\WindowsFormsApplication4\bin\Debug\AESFile.exe
+D:\凱力特\AES File\WindowsFormsApplication4\bin\Debug\AESFile.pdb
+D:\凱力特\AES File\WindowsFormsApplication4\obj\x86\Debug\AESFile.csprojAssemblyReference.cache
+D:\凱力特\AES File\WindowsFormsApplication4\obj\x86\Debug\AESFile.Main.resources
+D:\凱力特\AES File\WindowsFormsApplication4\obj\x86\Debug\AESFile.Properties.Resources.resources
+D:\凱力特\AES File\WindowsFormsApplication4\obj\x86\Debug\AESFile.csproj.GenerateResource.cache
+D:\凱力特\AES File\WindowsFormsApplication4\obj\x86\Debug\AESFile.csproj.CoreCompileInputs.cache
+D:\凱力特\AES File\WindowsFormsApplication4\obj\x86\Debug\AESFile.exe
+D:\凱力特\AES File\WindowsFormsApplication4\obj\x86\Debug\AESFile.pdb
