@@ -480,7 +480,7 @@ class MainWindow(tk.Frame):
                 self.label_title = tk.Label(self.fm3,text = "燈泡時間", width=4,font=('',self.font))
                 #self.label_lampTime.pack(side="left", fill="both", expand=True)
                 self.label_title.pack(side="left", fill="both", expand=True)
-                self.label_lampTime = tk.Label(self.fm3 ,textvariable=self.Lamp_time, width=4,font=('',self.font))
+                self.label_lampTime = tk.Label(self.fm3 ,textvariable=self.Lamp_time, width=7,font=('',self.font))
                 #self.label_lampTime.pack(side="left", fill="both", expand=True)
                 self.label_lampTime.pack(side="left", fill="both", expand=True,padx=11, pady=11)
                 self.button_calibration = tk.Button(self.fm3, text="校正", command=self.check_do_calibration,font=('',self.font))
@@ -638,7 +638,12 @@ class MainWindow(tk.Frame):
 
                 #self.checkLampAlive(buffer)
                 self.Excute_endTime = datetime.datetime.now()
-                self.diff_time =(self.Excute_endTime - self.Excute_startTime).seconds
+                self.temp =(self.Excute_endTime - self.Excute_startTime).seconds
+                if(self.temp > 86400):
+                    self.diff_time =(self.Excute_endTime - self.Excute_startTime).min
+                else:    
+                    self.diff_time =(self.Excute_endTime - self.Excute_startTime).seconds
+                
                 self.Display_Lamp_time(Lamp_total_time + self.diff_time)
                 if Lamp_total_time + self.diff_time > 0:
                     Lamp_reset = 1
