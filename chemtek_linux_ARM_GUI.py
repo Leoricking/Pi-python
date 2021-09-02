@@ -89,7 +89,6 @@ MeasureType = -1
 SerialNumber = ""
 Usb_path = ""
 passwd = ""
-k=0
 IntegrationTime = 0
 Average=0
 Serial_mode=-1
@@ -100,6 +99,7 @@ lambda_3 = 0
 lambda_4 = 0
 lambda_5 = 0
 
+select_unit=0
 Spectrum_unit=""
 Absorbance_unit=""
 Transmittance_unit=""
@@ -107,7 +107,7 @@ Reflection_unit=""
 ppm_unit=""
 
 Do_calibration=False
-shift_Gain = 0
+k=0
 Lamp_reset = 0
 Lamp_total_time = 0
 Decimal_number = 0
@@ -196,6 +196,7 @@ if(errorcode != 0):print("UAI_SpectrometerWavelengthAcquire errorcode = ", error
 
 #Init dark
 dark = (c_float*frame_size.value)()
+ref = (c_float*frame_size.value)()
 
 def initial_parameter():
     #Read ini parameter
@@ -224,6 +225,7 @@ def initial_parameter():
     global lambda_3
     global lambda_4
     global lambda_5
+    global select_unit
     global Spectrum_unit
     global Absorbance_unit
     global Transmittance_unit
@@ -231,7 +233,6 @@ def initial_parameter():
     global ppm_unit
     #global Display_name
     global Do_calibration
-    global shift_Gain
     global Lamp_reset
     global Lamp_total_time
     global Decimal_number
@@ -251,25 +252,15 @@ def initial_parameter():
                     #print("read MeasureType = ",MeasureType)
                 elif "Usb_path" in line:
                     Usb_path = line[startIndex:endIndex - 1]
-                    #print(Usb_path)
-                    #print("passwd = ",passwd)
                 elif "k" in line:
-                    k = int(line[startIndex:endIndex])
-                    #print("k = ",k)
+                    k = float(line[startIndex:endIndex])
                 elif "IntegrationTime" in line:
                     IntegrationTime = int(line[startIndex:endIndex])    
-                    #print("IntegrationTime = ",IntegrationTime)
                 elif "Average" in line:
                     Average = int(line[startIndex:endIndex])
                     #print("Average = ",Average)
                 elif "Serial_mode" in line:
                     Serial_mode = int(line[startIndex:endIndex])
-                    #print("Serial_mode = ",Serial_mode)
-                # elif "Display_name" in line:
-                #     read_Display_name = line[startIndex:endIndex - 1]
-                #     Display_name = read_Display_name.split(",")   
-                #     # for x in range(len(Display_name)):
-                #     #     print(Display_name[x])
                 elif "Lambda" in line:
                     if "Lambda_1" in line and int(line[startIndex:endIndex]) != 0:
                         lambda_1 = int(line[startIndex:endIndex])
@@ -285,7 +276,9 @@ def initial_parameter():
                     elif "Lambda_5" in line and int(line[startIndex:endIndex]) != 0:
                         lambda_5 = int(line[startIndex:endIndex])     
                 elif "unit" in line:
-                    if "Spectrum_unit" in line:
+                    if "select_unit" in line:
+                        select_unit = int(line[startIndex:endIndex])
+                    elif "Spectrum_unit" in line:
                         Spectrum_unit = line[startIndex:endIndex - 1]
                     elif "Absorbance_unit" in line:
                         Absorbance_unit = line[startIndex:endIndex - 1]
@@ -300,15 +293,6 @@ def initial_parameter():
                         Do_calibration = True
                     else :
                         Do_calibration = False    
-                elif "shift_Gain" in line:
-                    shift_Gain = float(line[startIndex:endIndex])
-                # elif "Lamp_reset" in line:
-                #     Lamp_reset = int(line[startIndex:endIndex])
-                # elif "Lamp_total_time" in line:
-                #     if Lamp_reset == 0:
-                #         Lamp_total_time = 0
-                #     else :    
-                #         Lamp_total_time = int(line[startIndex:endIndex])
                 elif "Decimal_number" in line:
                     Decimal_number = int(line[startIndex:endIndex])
     for line in lamp_lines:       #Lamp
@@ -414,6 +398,7 @@ class MainWindow(tk.Frame):
 
         helv36 = font.Font(family='Helvetica', size=28)
         font.families()
+        self.unit = ""
 
         self.show_Calibration = False
         self.show_Update = False
@@ -424,12 +409,7 @@ class MainWindow(tk.Frame):
 
         self.fm1 = Frame(self.master)
         self.fm1.pack(side=TOP, fill=BOTH, expand=YES)
-        #self.label = tk.Label(self.fm1,textvariable = "",width=10,font=('',self.font_lambda)).pack(side='top',fill = None,expand=True, pady=5)
-        #self.label = tk.Label(self.fm1,textvariable = self.Lambda,height = 1,width=10,font=('',self.font_lambda)).pack(side='top', anchor='sw')
         self.label = tk.Label(self.fm1,textvariable = self.Lambda,height = 1,width=10,font=('',self.font_lambda)).pack(side='top', anchor='sw', expand='yes',pady=5)
-        #pack(side="top",anchor='sw', padx=0, pady=0, fill="both", expand=True)
-        #self.label = tk.Label(self.fm1,textvariable = "",height = 1,width=5,font=('',self.font_lambda)).pack(side="top", padx=1, pady=1, fill="both", expand=True)
-        #self.label = tk.Label(self.fm1,textvariable = "",height = 1,font=('',self.font)).pack(side="top", padx=1, pady=1, fill="both", expand=True)
 
         self.fm2 = Frame(self.master)
         self.fm2.pack(side=TOP, fill=BOTH, expand=YES)
@@ -444,16 +424,9 @@ class MainWindow(tk.Frame):
         elif Serial_mode == 1 : #RS485
             self.RS485_initial()
 
-        #公司資訊
-        #self.CompanyInfo = ""
-        #print("len = ",len(Display_name))
-        # for x in range(len(Display_name)):
-        #     self.CompanyInfo+=Display_name[x]
-        #     self.CompanyInfo+="\n"
         #右鍵  
         self.Label_right = tk.Label(self.fm2,textvariable = self.Intensity,height = 1,font=('',self.font_value))
         self.Label_right.pack(side="top", fill="both", expand=FALSE, pady=5)
-        #self.label = tk.Label(self.fm1,textvariable = "",width=10,font=('',self.font_lambda)).pack(side='top',fill = None,expand=True, pady=5)
         self.menu = Menu(self, tearoff = 0)
         self.menu.add_command(label ="Input",command = self.Input_passwd,font=('',self.font))
         self.menu.add_command(label ="Hide",command = self.hide_button,font=('',self.font))
@@ -466,13 +439,13 @@ class MainWindow(tk.Frame):
         self.Dark = False
 
         self.getDark()
-
+        self.set_unit()
         self.action()
 
     def hide_button(self):
-        if self.show_Calibration :
-            self.button_calibration.pack_forget()
-            self.show_Calibration = False
+        # if self.show_Calibration :
+        #     self.button_calibration.pack_forget()
+        #     self.show_Calibration = False
         if self.show_Update :
             self.button_update.pack_forget()
             self.show_Update = False
@@ -491,18 +464,13 @@ class MainWindow(tk.Frame):
             Replace_string = passwd.replace("\"","")
             #input passwd
             if str(string) == str(Replace_string) and self.show_Calibration == False and self.show_Update == False and self.show_lampTime == False:
-                #print(Replace_string)
                 self.label_title = tk.Label(self.fm3,text = "燈泡時間", width=4,font=('',self.font))
-                #self.label_lampTime.pack(side="left", fill="both", expand=True)
                 self.label_title.pack(side="left", fill="both", expand=True)
                 self.label_lampTime = tk.Label(self.fm3 ,textvariable=self.Lamp_time, width=7,font=('',self.font))
-                #self.label_lampTime.pack(side="left", fill="both", expand=True)
                 self.label_lampTime.pack(side="left", fill="both", expand=True,padx=11, pady=11)
-                self.button_calibration = tk.Button(self.fm3, text="校正", command=self.check_do_calibration,font=('',self.font))
-                #self.button_calibration.pack(side="left",padx=11, pady=11)
-                self.button_calibration.pack(side="left", fill="both", expand=True,padx=11, pady=11)
+                # self.button_calibration = tk.Button(self.fm3, text="校正", command=self.check_do_calibration,font=('',self.font))
+                # self.button_calibration.pack(side="left", fill="both", expand=True,padx=11, pady=11)
                 self.button_update = tk.Button(self.fm3, text="更新", command=self.update_program,font=('',self.font))
-                #self.button_update.pack(side="left",padx=20, pady=20)
                 self.button_update.pack(side="left", fill="both", expand=True,padx=11, pady=11)
                 self.show_Calibration = True
                 self.show_Update = True
@@ -536,6 +504,18 @@ class MainWindow(tk.Frame):
             self.menu.tk_popup(event.x_root, event.y_root,0)
         finally:
             self.menu.grab_release()
+
+    def set_unit(self):
+        if select_unit == 0 :
+            self.unit = Spectrum_unit
+        if select_unit == 1 :
+            self.unit = Absorbance_unit
+        if select_unit == 2 :
+            self.unit = Transmittance_unit
+        if select_unit == 3 :
+            self.unit = Reflection_unit
+        if select_unit == 4 :
+            self.unit = ppm_unit                
 
     def Getdata (self):
         
@@ -585,16 +565,17 @@ class MainWindow(tk.Frame):
         self.wavelength_resolution(buffer)
         length_size = len(buffer_resolution)
         
+
         #print(max(buffer))
         #Check do Reference
         if max(buffer)>5000 :
             if self.FirstGetReference :
-                if(self.FirstGetReference) :    
-                    reference = (c_float*length_size)()
-                    for x in range(length_size):
-                        reference[x] = buffer_resolution[x]
-                        #print(reference[x],buffer_resolution[x])
-                    #print("------------------------------------------------------")          
+                if(self.FirstGetReference) :
+                    self.getRef()
+                    # for x in range(length_size):
+                    #     self.reference[x] = buffer_resolution[x]
+                    #     #print(reference[x],buffer_resolution[x])
+                    # #print("------------------------------------------------------")          
                     self.FirstGetReference = False
                     self.GetReference = True
                     self.Excute_startTime = datetime.datetime.now()
@@ -607,48 +588,51 @@ class MainWindow(tk.Frame):
 
                 loan_plot = (c_float*length_size)()
                 for x in range(length_size):
-                    loan_plot[x] = buffer_resolution[x] 
+                    if MeasureType == MeasurementType.Spectrum:
+                        loan_plot[x] = buffer_resolution[x] * k
+                    else:
+                        loan_plot[x] = buffer_resolution[x] 
                 
                 if MeasureType == MeasurementType.Spectrum:
-                    self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,Spectrum_unit)
+                    self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
                     # for x in range(frame_size.value):
                     #     print(SD_lambda_resolution[x],loan_plot[x])
                 if MeasureType == MeasurementType.Transmittance or MeasureType == MeasurementType.Reflection:
                     
                     for x in range(length_size):
-                        if (loan_plot[x] <= 0 or reference[x] <= 0):
+                        if (loan_plot[x] <= 0 or self.reference[x] <= 0):
                             loan_plot[x] = 0
                         else:
-                            loan_plot[x] = 100 * buffer_resolution[x] / reference[x]
+                            loan_plot[x] = 100 * k * buffer_resolution[x] / self.reference[x]
                     
                     if MeasureType == MeasurementType.Transmittance :
-                        self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,Transmittance_unit)
+                        self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
                     elif MeasureType == MeasurementType.Reflection :
-                        self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,Reflection_unit)
+                        self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
 
                 #elif MeasureType == MeasurementType.Absorbance or MeasureType == MeasurementType.Concentration:
                 elif MeasureType == MeasurementType.Absorbance:
 
                     for x in range(length_size):
-                        if (loan_plot[x] <= 0 or reference[x] <= 0):
+                        if (loan_plot[x] <= 0 or self.reference[x] <= 0):
                             loan_plot[x] = 0
                         else:
-                            loan_plot[x] = buffer_resolution[x] / reference[x]
+                            loan_plot[x] = buffer_resolution[x] / self.reference[x]
                             #elif MeasureType == MeasurementType.Concentration:
                             if Do_calibration :    
                                 loan_plot[x] = -1 * (math.log10(loan_plot[x])) * k
                             #if MeasureType == MeasurementType.Absorbance:
                             else:
-                                loan_plot[x] = -1 * (math.log10(loan_plot[x]))    
+                                loan_plot[x] = -1 * (math.log10(loan_plot[x])) * k
   
                     # for x in range(frame_size.value):
                     #     print(SD_lambda_resolution[x],loan_plot[x])
 
                     #if MeasureType == MeasurementType.Absorbance :
                     if Do_calibration :
-                        self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,ppm_unit)
+                        self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
                     else :    
-                        self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,Absorbance_unit)
+                        self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
                     #elif MeasureType == MeasurementType.Concentration :
 
                 #self.checkLampAlive(buffer)
@@ -702,11 +686,11 @@ class MainWindow(tk.Frame):
             if SD_lambda_resolution[x] == lambda_2:
                 lambda_2_index = x
             if SD_lambda_resolution[x] == lambda_3:
-                            lambda_3_index = x		
+                lambda_3_index = x		
             if SD_lambda_resolution[x] == lambda_4:
-                            lambda_4_index = x
+                lambda_4_index = x
             if SD_lambda_resolution[x] == lambda_5:
-                            lambda_5_index = x						
+                lambda_5_index = x						
 
     #內插成整數波長    
     def wavelength_resolution(self,buffer):
@@ -741,11 +725,6 @@ class MainWindow(tk.Frame):
             check_lambda = False
 
     def getDark(self):
-        a=3.1415926
-        b=0.0;
-
-        #print("--------------------")
-        #WriteFile("lambda",SD_lambda_Raw)
         #dark
         #f_dark = open(path+"dark", mode='r')
         f_dark = open(os.path.join(os.path.dirname(__file__), 'dark'), 'r')
@@ -761,6 +740,42 @@ class MainWindow(tk.Frame):
             dark[i] = float(line[startIndex:endIndex])
             #print(dark[i])
             i+=1
+
+    def getRef(self):
+        f_ref = open(os.path.join(os.path.dirname(__file__), 'ref'), 'r')
+        lines = f_ref.readlines()
+        ref=[0]*(len(lines))
+        #print("len ref = ",len(lines))
+        i=0
+        for line in lines:
+            startIndex = line.index(",") + 1
+            endIndex = len(line)
+            ref[i] = float(line[startIndex:endIndex])
+            #print(dark[i])
+            i+=1        
+
+        last = 0 
+        thread = 0.0
+        list_wavelength = []
+        list_intensity = []
+        #print("len SD_lambda_Raw = ",len(SD_lambda_Raw))
+        #print("frame_size.value = ",frame_size.value)
+        for i in range(0,int(SD_lambda_Raw[frame_size.value -1]+1),1):
+            #print(SD_lambda_Raw[i])
+            for j in range(last,frame_size.value - 1):
+                thread = i
+                if SD_lambda_Raw[j] <= thread and SD_lambda_Raw[j+1] > thread:
+                    list_wavelength.append(i)
+                    #print("j = ", j)
+                    list_intensity.append((ref[j] + (ref[j + 1] - ref[j]) * (i - SD_lambda_Raw[j]) / (SD_lambda_Raw[j + 1] - SD_lambda_Raw[j])))
+                    last = j
+
+        self.reference = (c_float*len(list_intensity))()
+        for x in range(len(list_wavelength)):
+            self.reference[x] = list_intensity[x]
+            #print("ref  ", list_wavelength[x] , self.reference[x])
+                              
+        self.GetReference = True    
 
     def action(self):
         self.thread = Thread(target=self.runData,args=())
@@ -845,29 +860,7 @@ class MainWindow(tk.Frame):
             sec = (lampTime%3600)%60
             #self.Lamp_time.set(str('{:d}'.format(int(lampTime/3600)) + " hr  " + str('{:d}'.format(int((lampTime%3600)/60))) + " min  " + '{:}'.format((lampTime%3600)/60)%60 + " s"))
             self.Lamp_time.set(str('{:d}'.format(hr) + " hr  " + str('{:d}'.format(min) + " min  " + '{:}'.format(sec) + " s")))
-
-    def encrypt_file(self,file_name):
-        global AesKey #密鑰
-        global AesIv #密鑰向量
-        with open(file_name, 'rb') as fo:
-            plaintext = fo.read()
-        try:
-            os.remove(file_name)
-        except OSError as e:
-            print(e)    
-        enc = encrypt(plaintext, AesKey, AesIv)
-        #with open(file_name.replace(".ini", "") + "_Encrypt.ini", 'wb') as fo:
-        with open(file_name, 'wb') as fo:
-            #print(file_name.replace(".ini", "") + "_Encrypt.ini")
-            fo.write(enc)
-        
-#  try:
-#         os.remove("setup.ini")
-#         #os.remove("setup_Decrypt.ini")
-#     except OSError as e:
-#         print(e)
-
-
+    
     def save_setup_ini(self):
         global AesKey #密鑰
         global AesIv #密鑰向量
@@ -888,26 +881,18 @@ class MainWindow(tk.Frame):
         global lambda_3
         global lambda_4
         global lambda_5
+        global select_unit
         global Spectrum_unit
         global Absorbance_unit
         global Transmittance_unit
         global Reflection_unit
         global ppm_unit
         global Do_calibration
-        global shift_Gain
         global Lamp_reset
         global Lamp_total_time
         global Decimal_number
 
         i = 0
-        #T = time.strftime("%H%M%S") 
-        #D = time.strftime("_%Y%d%m")
-        #f = open(self.FileName,'w')
-        #os.chmod(os.path.join(os.path.dirname(__file__), self.FileName), stat.S_IRWXG)
-        #f = os.open(os.path.join(os.path.dirname(__file__), self.FileName), os.O_FSYNC, 'w')
-        #f = os.open(os.path.join(os.path.dirname(__file__), self.FileName),os.O_RDWR, 'w')
-        #f = os.open( os.path.join(os.path.dirname(__file__), self.FileName), os.O_RDWR|os.O_CREAT )
-        #f = open( os.path.join(os.path.dirname(__file__), self.FileName), os.O_RDWR|os.O_CREAT , 'w')
         with open(os.path.join(os.path.dirname(__file__), self.FileName), 'w') as f:  
             f.write('########################################\n')
             f.write('##########       setup        ##########\n')
@@ -915,94 +900,10 @@ class MainWindow(tk.Frame):
             f.write('\n')
             f.write('#Lamp reset,0:Don\'t reset,1:Do reset\n')
             f.write('Lamp_reset=' + str(Lamp_reset))
-            # if Lamp_total_time + self.diff_time > 0:
-            #     f.write('Lamp_reset=' + str(0))
-            # else:
-            #     f.write('Lamp_reset=' + str(1))
             f.write('\n')
             f.write('Lamp_total_time=' + str(Lamp_total_time + self.diff_time))
             f.write('\n')
             f.close()
-        #f = open(self.FileName,'w')
-        #os.fchmod(f, 0o755)
-        # os.fchmod(f, stat.S_IWOTH)
-        # #process = subprocess.Popen(cat_wifi_pws, stdout=subprocess.PIPE, shell=True)
-        # os.write(f, '########################################\n')
-        # os.write(f, '##########       setup        ##########\n')
-        # os.write(f, '########################################\n')
-        # os.write(f, '\n')
-        # f.write('########################################\n')
-        # f.write('##########       setup        ##########\n')
-        # f.write('########################################\n')
-        # f.write('\n')
-        # f.write('#0:Spectrum,1:Absorbance,2:Transmittance,3:Reflection\n')
-        # f.write('Measurement=' + str(MeasureType))
-        # f.write('\n')
-        # f.write('#Serial Number\n')
-        # f.write('SN=' + str(SerialNumber) + '\n')
-        # f.write('\n')
-        # f.write('#0:no USB\n')
-        # f.write('Usb_path=' + str(Usb_path))
-        # f.write('\n')
-        # f.write('#Password\n')
-        # f.write('passwd=' + str(passwd) + '\n')
-        # f.write('\n')
-        # f.write('#k value\n')
-        # f.write('k=' + str(k))
-        # f.write('\n')
-        # f.write('#ms\n')
-        # f.write('IntegrationTime=' + str(IntegrationTime))
-        # f.write('\n')
-        # f.write('#Avg\n')
-        # f.write('Average=' + str(Average))
-        # f.write('\n')
-        # f.write('#Serial mode,0:RS232,1:RS485\n')
-        # f.write('Serial_mode=' + str(Serial_mode))
-        # f.write('\n')
-        #f.write('#螢幕顯示名稱\n')
-        #print(read_Display_name)
-        # f.write('Display_name=' + str(read_Display_name))
-        # f.write('\n')
-        # f.write('#select 5 lambda\n')
-        # f.write('Lambda_1=' + str(lambda_1))
-        # f.write('\n')
-        # f.write('Lambda_1_display=' + str(lambda_1_display))
-        # f.write('\n')
-        # f.write('Lambda_2=' + str(lambda_2))
-        # f.write('\n')
-        # f.write('Lambda_3=' + str(lambda_3))
-        # f.write('\n')
-        # f.write('Lambda_4=' + str(lambda_4))
-        # f.write('\n')
-        # f.write('Lambda_5=' + str(lambda_5))
-        # f.write('\n')
-        # f.write('#unit\n')
-        # f.write('Spectrum_unit=' + str(Spectrum_unit))
-        # f.write('\n')
-        # f.write('Absorbance_unit=' + str(Absorbance_unit))
-        # f.write('\n')
-        # f.write('Transmittance_unit=' + str(Transmittance_unit))
-        # f.write('\n')
-        # f.write('Reflection_unit=' + str(Reflection_unit))
-        # f.write('\n')
-        # f.write('ppm_unit=' + str(ppm_unit))
-        # f.write('\n')
-        # f.write('#Do calibration(Don\'t change it)\n')
-        # f.write('Do_calibration=' + str(Do_calibration))
-        # f.write('\n')
-        # f.write('shift_Gain=' + str('{:.10f}'.format(shift_Gain)))
-        # f.write('\n')
-        
-        # os.write(f, '#Lamp reset,0:Don\'t reset,1:Do reset\n')
-        # os.write(f, 'Lamp_reset=' + str(Lamp_reset))
-        # os.write(f, '\n')
-        # os.write(f, 'Lamp_total_time=' + str(Lamp_total_time + self.diff_time))
-        # os.write(f, '\n')
-        # f.write('#  2 <= Decimal <= 4\n')
-        # f.write('Decimal_number=' + str(Decimal_number))
-        # for i in I:
-        #     f.write(str('%.3f'%SD_lambda_Raw[i])+'\t'+str('%.8f'%self.buffer[i]) + '\n')
-        #f.close()
         os.chmod(os.path.join(os.path.dirname(__file__), self.FileName), 0o777)
         #os.close(f)
         #self.save_setup_ini()
