@@ -91,6 +91,7 @@ Usb_path = ""
 passwd = ""
 IntegrationTime = 0
 Average=0
+Boxcar=0
 Serial_mode=-1
 lambda_1 = 0
 lambda_1_display=""
@@ -218,6 +219,7 @@ def initial_parameter():
     global k
     global IntegrationTime
     global Average
+    global Boxcar
     global Serial_mode
     global lambda_1
     global lambda_1_display
@@ -259,6 +261,8 @@ def initial_parameter():
                 elif "Average" in line:
                     Average = int(line[startIndex:endIndex])
                     #print("Average = ",Average)
+                elif "Boxcar" in line:
+                    Boxcar = int(line[startIndex:endIndex])
                 elif "Serial_mode" in line:
                     Serial_mode = int(line[startIndex:endIndex])
                 elif "Lambda" in line:
@@ -559,10 +563,26 @@ class MainWindow(tk.Frame):
         errorcode = dll.UAI_LinearityCorrection(hand, frame_size, pointer(buffer))
         if(errorcode != 0):print( "Linearity errorcode = ", errorcode)
 
+        buffer_boxcar = (c_float*frame_size.value)()
+
+        # print("@@@@@@@@@")   
         # for x in range(frame_size.value):
         #         print(x,SD_lambda_Raw[x],buffer[x])
         # print("---------")      
-        self.wavelength_resolution(buffer)
+        self.boxcar(buffer,buffer_boxcar)
+
+        #if max(buffer)>50000 and max(buffer)< 65000 :
+            # file_boxcar = open("boxcar_diff", 'w')
+            # print("---------")      
+            # for x in range(frame_size.value):
+            #     file_boxcar.write(str('%.3f'%SD_lambda_Raw[x])+','+str('%.8f'%buffer[x]) +','+str('%.8f'%buffer_boxcar[x])+'\n')
+
+            # file_boxcar.close()
+        for x in range(frame_size.value):    
+            print(SD_lambda_Raw[x],",",buffer[x],",",buffer_boxcar[x])
+
+        # print("@@@@@@@@@")   
+        self.wavelength_resolution(buffer_boxcar)
         length_size = len(buffer_resolution)
         
 
@@ -582,6 +602,8 @@ class MainWindow(tk.Frame):
             
                 # for x in range(frame_size.value):
                 #     print(reference[x])
+                
+            #self.boxcar(buffer_resolution)
 
             if self.GetReference:
                 self.starttime = datetime.datetime.now()
@@ -664,6 +686,29 @@ class MainWindow(tk.Frame):
                 self.checkLampStatus = False
             #print("Lamp error")
 
+    def boxcar(self,buffer,buffer_boxcar):
+        #list_intensity = []
+        global Boxcar
+        #print("buffer len = ",len(buffer))
+        temp_Boxcax = (c_float*len(buffer))()
+        # print("type temp_box = ",type(temp_Boxcax))
+        # print("type buffer = ",type(buffer))
+
+        for i in range(len(temp_Boxcax)):
+            for j in range(Boxcar):
+                #print("i = ",i,"j = ",j)      
+                if i - 1 >= 0 :
+                    temp_Boxcax[i] += buffer[i - 1]
+                if i + 1 >= 0 and i + 1 < 1600:
+                    temp_Boxcax[i] += buffer[i + 1]
+            # print(temp_Boxcax[i],buffer[i])        
+            
+            temp_Boxcax[i] += buffer[i]
+
+        for i in range(len(temp_Boxcax)):
+            buffer_boxcar[i] = temp_Boxcax[i] / (2 * Boxcar + 1);
+            #print(buffer_boxcar[i])     
+
     def Lamp_error_msg(self):
         global Do_calibration
         MsgBox = messagebox.showerror ('Error','Please change a new lamp',icon = 'warning')
@@ -719,7 +764,8 @@ class MainWindow(tk.Frame):
             SD_lambda_resolution[x] = list_wavelength[x]
             buffer_resolution[x] = list_intensity[x]
             #print(x,SD_lambda_resolution[x],buffer_resolution[x])
-                              
+
+        #print("len(SD_lambda_resolution) = ",len(SD_lambda_resolution))                      
         if check_lambda:
             self.search_lambda_index()
             check_lambda = False
@@ -734,6 +780,7 @@ class MainWindow(tk.Frame):
         dark=[0]*(len(lines))
         #print(len(lines))
         i=0
+        #print("dark")
         for line in lines:
             startIndex = line.index(",") + 1
             endIndex = len(line)
@@ -747,26 +794,40 @@ class MainWindow(tk.Frame):
         ref=[0]*(len(lines))
         #print("len ref = ",len(lines))
         i=0
+        #print("ref")
         for line in lines:
             startIndex = line.index(",") + 1
             endIndex = len(line)
             ref[i] = float(line[startIndex:endIndex])
-            #print(dark[i])
+            #print(ref[i])
             i+=1        
 
         last = 0 
         thread = 0.0
         list_wavelength = []
         list_intensity = []
-        #print("len SD_lambda_Raw = ",len(SD_lambda_Raw))
-        #print("frame_size.value = ",frame_size.value)
+
+        # for i in range(last,frame_size.value - 1):
+        #     print("SD_lambda_Raw[j] = ",,"",)
+
+        print("len SD_lambda_Raw = ",len(SD_lambda_Raw))
+        print("frame_size.value = ",frame_size.value)
+        
         for i in range(0,int(SD_lambda_Raw[frame_size.value -1]+1),1):
             #print(SD_lambda_Raw[i])
             for j in range(last,frame_size.value - 1):
                 thread = i
                 if SD_lambda_Raw[j] <= thread and SD_lambda_Raw[j+1] > thread:
                     list_wavelength.append(i)
-                    #print("j = ", j)
+
+                    # if i > 848:
+                    #     print("len(ref[j]) = ",len(ref))
+                    #     print("i = ",i,"j = ", j)
+                    #     print("ref[j] = ",ref[j])
+                    #     print("ref[j + 1] = ",ref[j + 1])
+                    #     print("SD_lambda_Raw[j] = ",SD_lambda_Raw[j])
+                    #     print("SD_lambda_Raw[j] = ",SD_lambda_Raw[j])
+                    #     print("SD_lambda_Raw[j + 1] = ",SD_lambda_Raw[j + 1])
                     list_intensity.append((ref[j] + (ref[j + 1] - ref[j]) * (i - SD_lambda_Raw[j]) / (SD_lambda_Raw[j + 1] - SD_lambda_Raw[j])))
                     last = j
 
