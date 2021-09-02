@@ -192,12 +192,10 @@ SD_lambda_resolution = (c_float*frame_size.value)()
 dll.UAI_SpectrometerWavelengthAcquire(hand, pointer(SD_lambda_Raw))
 buffer = (c_float*frame_size.value)()
 #reference = (c_float*frame_size.value)()
-buffer_resolution = (c_float*frame_size.value)()
-if(errorcode != 0):print("UAI_SpectrometerWavelengthAcquire errorcode = ", errorcode)
 
-#Init dark
-dark = (c_float*frame_size.value)()
-ref = (c_float*frame_size.value)()
+#buffer_resolution = (c_float*frame_size.value)()
+
+if(errorcode != 0):print("UAI_SpectrometerWavelengthAcquire errorcode = ", errorcode)
 
 def initial_parameter():
     f_setup_ini = open(os.path.join(os.path.dirname(__file__), "setup.ini"), 'r')
@@ -379,6 +377,7 @@ class MainWindow(tk.Frame):
         self.font = 20
         self.font_lambda = 50
         self.font_value = 75
+        self.showWindow = FALSE
 
         helv36 = font.Font(family='Helvetica', size=28)
         font.families()
@@ -413,8 +412,15 @@ class MainWindow(tk.Frame):
         self.Label_right.pack(side="top", fill="both", expand=FALSE, pady=5)
         self.menu = Menu(self, tearoff = 0)
         self.menu.add_command(label ="Input",command = self.Input_passwd,font=('',self.font))
-        self.menu.add_command(label ="Hide",command = self.hide_button,font=('',self.font))
+        #self.menu.add_command(label ="Hide",command = self.hide_button,font=('',self.font))
         self.Label_right.bind("<Button-3>", self.do_popup)
+
+        self.label_empty1 = tk.Label(self.fm3,text = "", width=4,font=('',self.font))
+        self.label_empty1.pack(side="left", fill="both", expand=True)
+        self.button_cal = tk.Button(self.fm3, text="歸零", command=self.GetNewRef,font=('',self.font))
+        self.button_cal.pack(side="left", fill="both", expand=True,padx=11, pady=11)
+        self.label_empty2 = tk.Label(self.fm3,text = "", width=4,font=('',self.font))
+        self.label_empty2.pack(side="left", fill="both", expand=True)
 
         #parameters
         self.runG = 1
@@ -425,37 +431,43 @@ class MainWindow(tk.Frame):
         self.action()
 
     def hide_button(self):
-        if self.show_Update :
-            self.button_update.pack_forget()
-            self.show_Update = False
-        if self.label_lampTime :
-            self.label_lampTime.pack_forget()
-            self.show_lampTime = False    
-        if self.label_title :
-            self.label_title.pack_forget()
-            self.show_lamptitle = False    
         self.popup_window_exist = False    
+        self.menu.delete(1, self.menu.index(tk.END))
+        self.button_update.pack_forget()
+        self.label_lampTime.pack_forget()
+        self.label_title.pack_forget()
+        self.button_cal.pack_forget()
+        self.label_empty1 = tk.Label(self.fm3,text = "", width=4,font=('',self.font))
+        self.label_empty1.pack(side="left", fill="both", expand=True)
+        self.button_cal = tk.Button(self.fm3, text="歸零", command=self.GetNewRef,font=('',self.font))
+        self.button_cal.pack(side="left", fill="both", expand=True,padx=11, pady=11)
+        self.label_empty2 = tk.Label(self.fm3,text = "", width=4,font=('',self.font))
+        self.label_empty2.pack(side="left", fill="both", expand=True)
 
-    def Input_passwd(self):
+    def Input_passwd(self):        
         if self.popup_window_exist == False:
             self.popup_window_exist = TRUE
             string = CustomDialog(self, "Enter password:").show()
             Replace_string = passwd.replace("\"","")
             #input passwd
-            if str(string) == str(Replace_string) and self.show_Calibration == False and self.show_Update == False and self.show_lampTime == False:
+            if str(string) == str(Replace_string):
                 self.label_title = tk.Label(self.fm3,text = "燈泡時間", width=4,font=('',self.font))
                 self.label_title.pack(side="left", fill="both", expand=True)
                 self.label_lampTime = tk.Label(self.fm3 ,textvariable=self.Lamp_time, width=7,font=('',self.font))
                 self.label_lampTime.pack(side="left", fill="both", expand=True,padx=11, pady=11)
                 self.button_update = tk.Button(self.fm3, text="更新", command=self.update_program,font=('',self.font))
-                self.button_update.pack(side="left", fill="both", expand=True,padx=11, pady=11)
-                self.show_Calibration = True
-                self.show_Update = True
-                self.show_lampTime = True
-                self.show_lamptitle = True    
+                self.button_update.pack(side="left", fill="both", expand=True,padx=11, pady=11) 
+                self.label_empty1.pack_forget()
+                self.label_empty2.pack_forget()
+                self.showWindow = TRUE
+                self.menu.add_command(label ="Hide",command = self.hide_button,font=('',self.font))
+                #if(self.frame.winfo_exists())
+                print(self.label_empty1.winfo_exists())
             elif str(string) != str(Replace_string) :
                 self.popup_window_exist = False
                 messagebox.showerror("Password error!","please contact the application vendor")
+            else:
+                self.popup_window_exist = False    
 
     #RS485
     def RS485_initial(self):
@@ -474,6 +486,9 @@ class MainWindow(tk.Frame):
     def update_program(self):
         print("")
         quit()
+
+    def GetNewRef(self):
+        self.FirstGetReference = TRUE   
 
     def do_popup(self,event):
         try:
@@ -505,18 +520,31 @@ class MainWindow(tk.Frame):
 
         self.Measurement()
 
+    def wavelength_resolution(self,buffer):
+        last = 0 
+        thread = 0.0
+        self.list_wavelength = []
+        self.list_intensity = []
+
+        for i in range(0,int(SD_lambda_Raw[frame_size.value -1]+1),1):
+            for j in range(last,frame_size.value - 1):
+                thread = i
+                if SD_lambda_Raw[j] <= thread and SD_lambda_Raw[j+1] > thread:
+                    self.list_wavelength.append(i)
+                    self.list_intensity.append((buffer[j] + (buffer[j + 1] - buffer[j]) * (i - SD_lambda_Raw[j]) / (SD_lambda_Raw[j + 1] - SD_lambda_Raw[j])))
+                    last = j
+
     def Measurement(self):
-        global SD_lambda_resolution
-        global buffer_resolution
         global checkDoReference
-        global reference
         global Lamp_reset
         global Lamp_total_time
         global Do_calibration
+        global check_lambda
         global count
         global ser
         
         buffer = (c_float*frame_size.value)()
+        self.buffer_resolution = (c_float*frame_size.value)()
         for x in range(frame_size.value):
             buffer[x] = self.buffer[x] 
 
@@ -530,19 +558,40 @@ class MainWindow(tk.Frame):
         buffer_boxcar = (c_float*frame_size.value)()
   
         self.boxcar(buffer,buffer_boxcar)
+        
+        # print(len(buffer),len(buffer_boxcar))
         # for x in range(frame_size.value):    
         #     print(x,",",SD_lambda_Raw[x],",",buffer[x],",",buffer_boxcar[x])
 
         self.wavelength_resolution(buffer_boxcar)
-        length_size = len(buffer_resolution)
-        
+        self.SD_lambda_resolution = (c_int*len(self.list_wavelength))()
+        self.buffer_resolution = (c_float*len(self.list_intensity))()
+        for x in range(len(self.list_wavelength)):
+            self.SD_lambda_resolution[x] = self.list_wavelength[x]
+            self.buffer_resolution[x] = self.list_intensity[x]
+            #print(x,SD_lambda_resolution[x],self.buffer_resolution[x])
+
+        if check_lambda:
+            self.search_lambda_index()
+            check_lambda = False
+
+        length_size = len(self.SD_lambda_resolution)
         if max(buffer)>float(5000) :
             if self.FirstGetReference :
-                if(self.FirstGetReference) :
-                    self.getRef()  
-                    self.FirstGetReference = False
-                    self.GetReference = True
-                    self.Excute_startTime = datetime.datetime.now()
+                #self.reference = (c_float*frame_size.value)()                   
+                self.wavelength_resolution(buffer_boxcar)
+                self.reference = (c_float*length_size)()
+                for x in range(len(self.list_wavelength)):
+                    self.reference[x] = self.list_intensity[x]
+
+                self.GetReference = True    
+                self.FirstGetReference = False
+                self.GetReference = True
+                self.Excute_startTime = datetime.datetime.now()
+
+            #print("ref ",len(self.SD_lambda_resolution),len(self.buffer_resolution),len(self.reference))
+            # for x in range(length_size):    
+            #     print(x,",",self.SD_lambda_resolution[x],",",self.buffer_resolution[x],",",self.reference[x])
 
             if self.GetReference:
                 self.starttime = datetime.datetime.now()
@@ -550,24 +599,24 @@ class MainWindow(tk.Frame):
                 loan_plot = (c_float*length_size)()
                 for x in range(length_size):
                     if MeasureType == MeasurementType.Spectrum:
-                        loan_plot[x] = buffer_resolution[x] * k
+                        loan_plot[x] = self.buffer_resolution[x] * k
                     else:
-                        loan_plot[x] = buffer_resolution[x] 
+                        loan_plot[x] = self.buffer_resolution[x] 
                 
                 if MeasureType == MeasurementType.Spectrum:
-                    self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
+                    self.print(self.SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
                 if MeasureType == MeasurementType.Transmittance or MeasureType == MeasurementType.Reflection:
                     
                     for x in range(length_size):
                         if (loan_plot[x] <= 0 or self.reference[x] <= 0):
                             loan_plot[x] = 0
                         else:
-                            loan_plot[x] = 100 * k * buffer_resolution[x] / self.reference[x]
+                            loan_plot[x] = 100 * k * self.buffer_resolution[x] / self.reference[x]
                     
                     if MeasureType == MeasurementType.Transmittance :
-                        self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
+                        self.print(self.SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
                     elif MeasureType == MeasurementType.Reflection :
-                        self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
+                        self.print(self.SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
 
                 elif MeasureType == MeasurementType.Absorbance:
 
@@ -575,16 +624,16 @@ class MainWindow(tk.Frame):
                         if (loan_plot[x] <= 0 or self.reference[x] <= 0):
                             loan_plot[x] = 0
                         else:
-                            loan_plot[x] = buffer_resolution[x] / self.reference[x]
+                            loan_plot[x] = self.buffer_resolution[x] / self.reference[x]
                             if Do_calibration :    
                                 loan_plot[x] = -1 * (math.log10(loan_plot[x])) * k
                             else:
                                 loan_plot[x] = -1 * (math.log10(loan_plot[x])) * k
   
                     if Do_calibration :
-                        self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
+                        self.print(self.SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
                     else :    
-                        self.print(SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
+                        self.print(self.SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
 
                 #self.checkLampAlive(buffer)
                 self.Excute_endTime = datetime.datetime.now()
@@ -620,24 +669,23 @@ class MainWindow(tk.Frame):
                 self.checkLampStatus = False
             #print("Lamp error")
 
+    
     def boxcar(self,buffer,buffer_boxcar):
         global Boxcar
-        temp_Boxcax = (c_float*len(buffer))()
+        self.temp_Boxcax = (c_float*len(buffer))()
 
-        for i in range(len(temp_Boxcax)):
+        for i in range(len(self.temp_Boxcax)):
             for j in range(Boxcar):
-                #print("i = ",i,"j = ",j)      
                 if i - 1 >= 0 :
-                    temp_Boxcax[i] += buffer[i - 1]
-                if i + 1 >= 0 and i + 1 < len(temp_Boxcax):
-                    temp_Boxcax[i] += buffer[i + 1]
-            # print(temp_Boxcax[i],buffer[i])        
+                    self.temp_Boxcax[i] += buffer[i - 1]
+                if i + 1 >= 0 and i + 1 < len(self.temp_Boxcax):
+                    self.temp_Boxcax[i] += buffer[i + 1]
             
-            temp_Boxcax[i] += buffer[i]
+            self.temp_Boxcax[i] += buffer[i]
 
-        for i in range(len(temp_Boxcax)):
-            buffer_boxcar[i] = temp_Boxcax[i] / (2 * Boxcar + 1);
-            #print(buffer_boxcar[i])     
+        for i in range(len(self.temp_Boxcax)):
+            buffer_boxcar[i] = self.temp_Boxcax[i] / (2 * Boxcar + 1);
+            #print(buffer[i],buffer_boxcar[i])     
 
     def Lamp_error_msg(self):
         global Do_calibration
@@ -667,71 +715,6 @@ class MainWindow(tk.Frame):
                 lambda_4_index = x
             if SD_lambda_resolution[x] == lambda_5:
                 lambda_5_index = x						
-
-    def wavelength_resolution(self,buffer):
-        global SD_lambda_resolution
-        global buffer_resolution
-        global check_lambda
-
-        last = 0 
-        thread = 0.0
-        list_wavelength = []
-        list_intensity = []
-
-        for i in range(0,int(SD_lambda_Raw[frame_size.value -1]+1),1):
-            for j in range(last,frame_size.value - 1):
-                thread = i
-                if SD_lambda_Raw[j] <= thread and SD_lambda_Raw[j+1] > thread:
-                    list_wavelength.append(i)
-                    #list_intensity.append((self.buffer[j] + (self.buffer[j + 1] - self.buffer[j]) * (i - SD_lambda_Raw[j]) / (SD_lambda_Raw[j + 1] - SD_lambda_Raw[j])))
-                    list_intensity.append((buffer[j] + (buffer[j + 1] - buffer[j]) * (i - SD_lambda_Raw[j]) / (SD_lambda_Raw[j + 1] - SD_lambda_Raw[j])))
-                    last = j
-
-        SD_lambda_resolution = (c_int*len(list_wavelength))()
-        buffer_resolution = (c_float*len(list_intensity))()
-        for x in range(len(list_wavelength)):
-            SD_lambda_resolution[x] = list_wavelength[x]
-            buffer_resolution[x] = list_intensity[x]
-            #print(x,SD_lambda_resolution[x],buffer_resolution[x])
-
-        #print("len(SD_lambda_resolution) = ",len(SD_lambda_resolution))                      
-        if check_lambda:
-            self.search_lambda_index()
-            check_lambda = False
-
-    def getRef(self):
-        f_ref = open(os.path.join(os.path.dirname(__file__), 'ref'), 'r')
-        lines = f_ref.readlines()
-        ref=[0]*(len(lines))
-        i=0
-        for line in lines:
-            startIndex = line.index(",") + 1
-            endIndex = len(line)
-            ref[i] = float(line[startIndex:endIndex])
-            #print(ref[i])
-            i+=1        
-
-        last = 0 
-        thread = 0.0
-        list_wavelength = []
-        list_intensity = []
-
-        for i in range(0,int(SD_lambda_Raw[frame_size.value -1]+1),1):
-            #print(SD_lambda_Raw[i])
-            for j in range(last,frame_size.value - 1):
-                thread = i
-                if SD_lambda_Raw[j] <= thread and SD_lambda_Raw[j+1] > thread:
-                    list_wavelength.append(i)
-
-                    list_intensity.append((ref[j] + (ref[j + 1] - ref[j]) * (i - SD_lambda_Raw[j]) / (SD_lambda_Raw[j + 1] - SD_lambda_Raw[j])))
-                    last = j
-
-        self.reference = (c_float*len(list_intensity))()
-        for x in range(len(list_wavelength)):
-            self.reference[x] = list_intensity[x]
-            #print("ref  ", list_wavelength[x] , self.reference[x])
-                              
-        self.GetReference = True    
 
     def action(self):
         self.thread = Thread(target=self.runData,args=())
