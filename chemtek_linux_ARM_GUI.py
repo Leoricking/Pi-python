@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+#from posix import X_OK
 import sys
 import stat
 import struct
@@ -62,7 +63,9 @@ class MeasurementType(IntEnum):
 path = os.path.dirname(os.path.abspath(__file__)) + os.path.sep
 
 #dll_name = "lib_linux_X64_1.0.15.so"
-dll_name = "lib_linux_ARM_1.0.15.so"
+#dll_name = "lib_linux_ARM_1.0.15.so"
+#dll_name = "lib_linux_X64_2.7.0.3.so"
+dll_name = "lib_linux_ARM_2.7.0.3.so"
 #dll_name = "lib_ARM.so.1.2"
 dllabspath = os.path.dirname(os.path.abspath(__file__)) + os.path.sep + dll_name
 dll = CDLL(dllabspath)
@@ -188,7 +191,7 @@ if frame_size.value ==0:
      print("Framesize is invalid")
      exit()
 SD_lambda_Raw = (c_float*frame_size.value)()
-SD_lambda_resolution = (c_float*frame_size.value)()
+SD_lambda_resolution = (c_int*frame_size.value)()
 dll.UAI_SpectrometerWavelengthAcquire(hand, pointer(SD_lambda_Raw))
 buffer = (c_float*frame_size.value)()
 #reference = (c_float*frame_size.value)()
@@ -378,6 +381,8 @@ class MainWindow(tk.Frame):
         self.font_lambda = 50
         self.font_value = 75
         self.showWindow = FALSE
+        self.tmp_wavelength_log = ""
+        self.tmp_loan_log = ""
 
         helv36 = font.Font(family='Helvetica', size=28)
         font.families()
@@ -422,11 +427,14 @@ class MainWindow(tk.Frame):
         self.label_empty2 = tk.Label(self.fm3,text = "", width=4,font=('',self.font))
         self.label_empty2.pack(side="left", fill="both", expand=True)
 
+        #self.file_log = open(os.path.join(os.path.dirname(__file__), "log.csv"), 'w')  
+        
         #parameters
         self.runG = 1
         self.auto = 1
         self.ABSornot = False
         #self.Dark = False
+        self.getDark()
         self.set_unit()
         self.action()
 
@@ -509,10 +517,11 @@ class MainWindow(tk.Frame):
             self.unit = ppm_unit                
 
     def Getdata (self):
+        global Average
         
         buffer = (c_float*frame_size.value)()
         
-        errorcode = dll.UAI_SpectrometerDataAcquire(hand, IntegrationTime, pointer(buffer), 1)
+        errorcode = dll.UAI_SpectrometerDataAcquire(hand, IntegrationTime, pointer(buffer), Average)
         if(errorcode != 0):print("DataAcquire errorcode = ", errorcode)
 
         self.buffer = buffer
@@ -561,15 +570,20 @@ class MainWindow(tk.Frame):
         
         # print(len(buffer),len(buffer_boxcar))
         # for x in range(frame_size.value):    
-        #     print(x,",",SD_lambda_Raw[x],",",buffer[x],",",buffer_boxcar[x])
+        #     #print(x,",",SD_lambda_Raw[x],",",buffer[x],",",buffer_boxcar[x])
+        #     print(SD_lambda_Raw[x],buffer_boxcar[x])
 
         self.wavelength_resolution(buffer_boxcar)
         self.SD_lambda_resolution = (c_int*len(self.list_wavelength))()
         self.buffer_resolution = (c_float*len(self.list_intensity))()
         for x in range(len(self.list_wavelength)):
-            self.SD_lambda_resolution[x] = self.list_wavelength[x]
+            self.SD_lambda_resolution[x] = int(self.list_wavelength[x])
             self.buffer_resolution[x] = self.list_intensity[x]
-            #print(x,SD_lambda_resolution[x],self.buffer_resolution[x])
+
+        # if self.tmp_wavelength_log == "":
+        #     for x in range(len(self.SD_lambda_resolution)):
+        #         self.tmp_wavelength_log += str('{:.4f}'.format(self.SD_lambda_resolution[x])) + ","
+        #     self.file_log.write(self.tmp_wavelength_log + "\n")
 
         if check_lambda:
             self.search_lambda_index()
@@ -608,10 +622,10 @@ class MainWindow(tk.Frame):
                 if MeasureType == MeasurementType.Transmittance or MeasureType == MeasurementType.Reflection:
                     
                     for x in range(length_size):
-                        if (loan_plot[x] <= 0 or self.reference[x] <= 0):
+                        if (loan_plot[x] <= 0 or (self.reference[x] - self.dark[x]) <= 0):
                             loan_plot[x] = 0
                         else:
-                            loan_plot[x] = 100 * k * self.buffer_resolution[x] / self.reference[x]
+                            loan_plot[x] = 100 * k * (self.buffer_resolution[x] - self.dark[x]) / (self.reference[x] - self.dark[x])
                     
                     if MeasureType == MeasurementType.Transmittance :
                         self.print(self.SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
@@ -619,17 +633,22 @@ class MainWindow(tk.Frame):
                         self.print(self.SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
 
                 elif MeasureType == MeasurementType.Absorbance:
-
+                    
                     for x in range(length_size):
-                        if (loan_plot[x] <= 0 or self.reference[x] <= 0):
+      
+                        if (loan_plot[x] <= 0 or (self.buffer_resolution[x] - self.dark[x]) <= float(0) or (self.reference[x] - self.dark[x]) <= float(0)):
                             loan_plot[x] = 0
                         else:
-                            loan_plot[x] = self.buffer_resolution[x] / self.reference[x]
+                            loan_plot[x] = (self.buffer_resolution[x]- self.dark[x]) / (self.reference[x] - self.dark[x])
                             if Do_calibration :    
                                 loan_plot[x] = -1 * (math.log10(loan_plot[x])) * k
                             else:
                                 loan_plot[x] = -1 * (math.log10(loan_plot[x])) * k
-  
+                        #self.tmp_loan_log += str('{:.4f}'.format(loan_plot[x])) + ","
+                    
+                    #self.file_log.write(self.tmp_loan_log + "\n")
+                    #self.tmp_loan_log = ""
+
                     if Do_calibration :
                         self.print(self.SD_lambda_resolution,loan_plot,lambda_1_index,lambda_1_display,self.unit)
                     else :    
@@ -668,7 +687,22 @@ class MainWindow(tk.Frame):
                 self.Lamp_error_msg()
                 self.checkLampStatus = False
             #print("Lamp error")
+    
+    def getDark(self):
+        f_dark = open(os.path.join(os.path.dirname(__file__), 'dark'), 'r')
+        lines = f_dark.readlines()
+        dark=[0]*(len(lines))
+        i=0
+        for line in lines:
+            startIndex = line.index(",") + 1
+            endIndex = len(line)
+            dark[i] = float(line[startIndex:endIndex])
+            i+=1
 
+        self.wavelength_resolution(dark)
+        self.dark = (c_float*len(self.list_intensity))()
+        for x in range(len(self.list_intensity)):
+            self.dark[x] = self.list_intensity[x] 
     
     def boxcar(self,buffer,buffer_boxcar):
         global Boxcar
@@ -704,16 +738,16 @@ class MainWindow(tk.Frame):
         global lambda_4
         global lambda_5
 
-        for x in range(len(SD_lambda_resolution)):
-            if SD_lambda_resolution[x] == lambda_1:
+        for x in range(len(self.SD_lambda_resolution)):
+            if self.SD_lambda_resolution[x] == lambda_1:
                 lambda_1_index = x
-            if SD_lambda_resolution[x] == lambda_2:
+            if self.SD_lambda_resolution[x] == lambda_2:
                 lambda_2_index = x
-            if SD_lambda_resolution[x] == lambda_3:
+            if self.SD_lambda_resolution[x] == lambda_3:
                 lambda_3_index = x		
-            if SD_lambda_resolution[x] == lambda_4:
+            if self.SD_lambda_resolution[x] == lambda_4:
                 lambda_4_index = x
-            if SD_lambda_resolution[x] == lambda_5:
+            if self.SD_lambda_resolution[x] == lambda_5:
                 lambda_5_index = x						
 
     def action(self):
