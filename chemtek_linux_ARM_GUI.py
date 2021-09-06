@@ -691,18 +691,13 @@ class MainWindow(tk.Frame):
     def getDark(self):
         f_dark = open(os.path.join(os.path.dirname(__file__), 'dark'), 'r')
         lines = f_dark.readlines()
-        dark=[0]*(len(lines))
+        self.dark=[0]*(len(lines))
         i=0
         for line in lines:
             startIndex = line.index(",") + 1
             endIndex = len(line)
-            dark[i] = float(line[startIndex:endIndex])
+            self.dark[i] = float(line[startIndex:endIndex])
             i+=1
-
-        self.wavelength_resolution(dark)
-        self.dark = (c_float*len(self.list_intensity))()
-        for x in range(len(self.list_intensity)):
-            self.dark[x] = self.list_intensity[x] 
     
     def boxcar(self,buffer,buffer_boxcar):
         global Boxcar
